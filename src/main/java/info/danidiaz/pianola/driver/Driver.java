@@ -16,6 +16,8 @@ import java.util.Map;
 
 import javax.imageio.ImageIO;
 
+import org.codehaus.jackson.JsonFactory;
+import org.codehaus.jackson.JsonParser;
 import org.msgpack.MessagePack;
 import org.msgpack.MessageTypeException;
 import org.msgpack.packer.MessagePackPacker;
@@ -253,6 +255,11 @@ public class Driver implements Runnable
                 Socket  clientSocket = serverSocket.accept();
                 
                 InputStream sistream =  new BufferedInputStream(clientSocket.getInputStream());
+
+                // http://jackson.codehaus.org/1.9.4/javadoc/index.html
+                JsonFactory jsonFactory = new JsonFactory();
+                JsonParser jp = jsonFactory.createJsonParser(sistream);
+
                 Unpacker unpacker = new MessagePackUnpacker(messagePack,sistream);
                 
                 OutputStream sostream =  new BufferedOutputStream(clientSocket.getOutputStream());
