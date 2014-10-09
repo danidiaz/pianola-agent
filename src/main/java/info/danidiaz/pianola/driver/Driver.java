@@ -260,12 +260,12 @@ public class Driver implements Runnable
 
                 // http://jackson.codehaus.org/1.9.4/javadoc/index.html
                 JsonFactory jsonFactory = new JsonFactory();
-                JsonParser jp = jsonFactory.createJsonParser(sistream);
+                JsonParser jp = jsonFactory.createParser(sistream);
 
                 Unpacker unpacker = new MessagePackUnpacker(messagePack,sistream);
                 
                 OutputStream sostream =  new BufferedOutputStream(clientSocket.getOutputStream());
-                JsonGenerator jg = jsonFactory.createJsonGenerator(sostream, JsonEncoding.UTF8);
+                JsonGenerator jg = jsonFactory.createGenerator(sostream, JsonEncoding.UTF8);
                 // jg.flush();
                 
                 Packer packer = new MessagePackPacker(messagePack,sostream);
