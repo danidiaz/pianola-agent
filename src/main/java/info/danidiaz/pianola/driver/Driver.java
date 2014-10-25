@@ -22,6 +22,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.googlecode.jsonrpc4j.JsonRpcServer;
 import com.googlecode.jsonrpc4j.StreamServer;
 
@@ -321,8 +322,20 @@ public class Driver implements SnapshotFactory
     }*/
 
 	@Override
-	public JsonNode snapshot() {
-		JsonNodeFactory factory = JsonNodeFactory.instance;	
-		return factory.objectNode().put("doubled", 1);
+	public ObjectNode snapshot() {
+		lastSnapshotId++;
+
+        SnapshotImpl pianola = new SnapshotImpl(lastSnapshot,releaseIsPopupTrigger);
+		JsonNode windows = pianola.buildAndWrite();
+
+		JsonNodeFactory factory = JsonNodeFactory.instance;
+
+		ObjectNode snapshotNode = factory.objectNode();
+		snapshotNode.put("snapshotId",lastSnapshotId);
+		snapshotNode.put("windows",windows);
+
+        lastSnapshot = pianola;    
+
+        return snapshotNode;
 	} 
 }

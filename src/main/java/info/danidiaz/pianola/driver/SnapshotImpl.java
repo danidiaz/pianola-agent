@@ -46,6 +46,9 @@ import javax.swing.tree.TreePath;
 
 import org.msgpack.packer.Packer;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class SnapshotImpl {
     
     private ImageBin imageBin;
@@ -61,7 +64,7 @@ public class SnapshotImpl {
         this.imageBin = pianola==null ? new ImageBin() : pianola.obtainImageBin();
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
     }
-    public void buildAndWrite(final Packer packer) throws IOException {
+    public JsonNode buildAndWrite() throws IOException {
         
         try {
             SwingUtilities.invokeAndWait(new Runnable() {
@@ -442,7 +445,9 @@ public class SnapshotImpl {
         packer.write((boolean)belongsToJTree);
     }
     
-    
+    //
+    //
+    //
     private static void writePotentiallyNullString(Packer packer, String s) throws IOException {
         if (s==null) {
             packer.writeNil();
