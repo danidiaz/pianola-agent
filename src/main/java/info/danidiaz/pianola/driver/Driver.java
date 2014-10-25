@@ -20,6 +20,11 @@ import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.googlecode.jsonrpc4j.JsonRpcServer;
+import com.googlecode.jsonrpc4j.StreamServer;
+
 import org.msgpack.MessagePack;
 import org.msgpack.MessageTypeException;
 import org.msgpack.packer.MessagePackPacker;
@@ -27,19 +32,17 @@ import org.msgpack.packer.Packer;
 import org.msgpack.unpacker.MessagePackUnpacker;
 import org.msgpack.unpacker.Unpacker;
 
-public class Driver implements Runnable
+public class Driver implements SnapshotFactory
 {
     
     // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
     private final static int DEFAULT_PORT = 26060;
-    
-    private final ServerSocket serverSocket;
-    private final MessagePack messagePack;
+    private final static int MAX_THREADS = 1;
     
     boolean releaseIsPopupTrigger;
     
     private int lastSnapshotId = 0;
-    private Snapshot lastSnapshot = null; 
+    private SnapshotImpl lastSnapshot = null; 
     
     private ByteArrayOutputStream imageBuffer = new ByteArrayOutputStream();
     
@@ -63,76 +66,76 @@ public class Driver implements Runnable
                 }
             }                        
             
-            final ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
             MessagePack messagePack = new MessagePack(); 
-                        
-            Thread serverThread = new Thread(new Driver(serverSocket,messagePack,releaseIsPopupTrigger));
-            serverThread.setDaemon(true);
-            serverThread.start();
-            System.out.println("Pianola server started at port " + port);
+        	JsonRpcServer jsonRpcServer = new JsonRpcServer(
+        			new Driver(releaseIsPopupTrigger),
+        			SnapshotFactory.class
+        	);
+
+            ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
+            StreamServer streamServer = new StreamServer(jsonRpcServer, MAX_THREADS, serverSocket);
+            streamServer.start();
+
         } catch (NumberFormatException e) {
             e.printStackTrace();
-        }catch (IOException e) {       
+        } catch (IOException e) {
             e.printStackTrace();
-        }
-            
+        }        	
     }
 
-    public Driver(ServerSocket serverSocket, MessagePack messagePack,boolean releaseIsPopupTrigger) {
+    public Driver(boolean releaseIsPopupTrigger) {
         super();
-        this.serverSocket = serverSocket;
-        this.messagePack = messagePack;
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
     }
     
-    private enum Action {
+/*    private enum Action {
         CLICK("click") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException  {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException  {
                 int cId = unpacker.readInt();
                 snapshot.click(cId);                
             }  },
         DOUBLECLICK("doubleClick") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int cId = unpacker.readInt();
                 snapshot.doubleClick(cId);
             }  },
         RIGHTCLICK("rightClick") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int cId = unpacker.readInt();
                 snapshot.rightClick(cId);               
             }  },
         CLICKBUTTON("clickButton") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int buttonId = unpacker.readInt();
                 snapshot.clickButton(buttonId);
             }  },
         TOGGLE("toggle") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int buttonId = unpacker.readInt();
                 boolean targetState = unpacker.readBoolean();
                 snapshot.toggle(buttonId,targetState);                
             }  },
         CLICKCOMBO("clickCombo") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int buttonId = unpacker.readInt();
                 snapshot.clickCombo(buttonId);                
             }  },
         SETTEXTFIELD("setTextField") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int buttonId = unpacker.readInt();
                 String text = unpacker.readString();
                 snapshot.setTextField(buttonId,text);                
             }  },
         CLICKCELL("clickCell") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int componentId = unpacker.readInt();
                 int rowId = unpacker.readInt();
                 int columnId = unpacker.readInt();
@@ -140,7 +143,7 @@ public class Driver implements Runnable
             }  },
         DOUBLECLICKCELL("doubleClickCell") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int componentId = unpacker.readInt();
                 int rowId = unpacker.readInt();
                 int columnId = unpacker.readInt();
@@ -148,7 +151,7 @@ public class Driver implements Runnable
             }  },
         RIGHTCLICKCEll("rightClickCell") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int componentId = unpacker.readInt();
                 int rowId = unpacker.readInt();
                 int columnId = unpacker.readInt();
@@ -156,7 +159,7 @@ public class Driver implements Runnable
             }  },
         EXPANDCOLLAPSECELL("expandCollapseCell") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException  {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException  {
                 int componentId = unpacker.readInt();
                 int rowId = unpacker.readInt();
                 int columnId = unpacker.readInt(); // not actually used
@@ -165,14 +168,14 @@ public class Driver implements Runnable
             }  },
         SELECTTAB("selectTab") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException  {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException  {
                 int componentId = unpacker.readInt();
                 int tabid = unpacker.readInt();
                 snapshot.selectTab(componentId,tabid);               
             }  },
         GETWINDOWIMAGE("getWindowImage") {
             @Override
-            public void unpackInvokePack(Unpacker unpacker, Snapshot snapshot,
+            public void unpackInvokePack(Unpacker unpacker, SnapshotImpl snapshot,
                     ByteArrayOutputStream imageBuffer, Packer packer)
                     throws Exception {
                 int windowId = unpacker.readInt();
@@ -184,25 +187,25 @@ public class Driver implements Runnable
             } },
         CLOSEWINDOW("closeWindow") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int windowId = unpacker.readInt();
                 snapshot.closeWindow(windowId);                
             }  },
         TOFRONT("toFront") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int windowId = unpacker.readInt();
                 snapshot.toFront(windowId);                
             }  },
         ESCAPE("escape") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int windowId = unpacker.readInt();
                 snapshot.escape(windowId);                
             }  },
         ENTER("enter") {
             @Override
-            public void unpackInvoke(Unpacker unpacker, Snapshot snapshot) throws IOException {
+            public void unpackInvoke(Unpacker unpacker, SnapshotImpl snapshot) throws IOException {
                 int windowId = unpacker.readInt();
                 snapshot.enter(windowId);                
             }  };
@@ -219,7 +222,7 @@ public class Driver implements Runnable
         
         public void unpackInvokePack(
                 Unpacker unpacker,
-                Snapshot snapshot,
+                SnapshotImpl snapshot,
                 ByteArrayOutputStream imageBuffer,
                 Packer packer
             ) 
@@ -241,7 +244,7 @@ public class Driver implements Runnable
         }
         
         // For those requests which usually respond null
-        public void unpackInvoke(Unpacker unpacker,Snapshot snapshot) throws Exception { }
+        public void unpackInvoke(Unpacker unpacker,SnapshotImpl snapshot) throws Exception { }
     }
     
     @Override
@@ -273,7 +276,7 @@ public class Driver implements Runnable
                     String methodName = unpacker.readString();                
                     if (methodName.equals("snapshot")) {
                         lastSnapshotId++;
-                        Snapshot pianola = new Snapshot(lastSnapshot,releaseIsPopupTrigger);
+                        SnapshotImpl pianola = new SnapshotImpl(lastSnapshot,releaseIsPopupTrigger);
                         packer.write((int)0); // No error happened.
                         packer.write((int)lastSnapshotId);
                         pianola.buildAndWrite(packer);
@@ -315,5 +318,11 @@ public class Driver implements Runnable
         } catch (IOException ioe) {
             ioe.printStackTrace();    
         }  
-    } 
+    }*/
+
+	@Override
+	public JsonNode snapshot() {
+		JsonNodeFactory factory = JsonNodeFactory.instance;	
+		return factory.objectNode().put("doubled", 1);
+	} 
 }

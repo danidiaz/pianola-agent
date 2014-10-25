@@ -8,5 +8,6 @@ TAGS
 .project
 .classpath
 .cabal-sandbox
+.settings
 cabal.sandbox.config
 Session.vim
