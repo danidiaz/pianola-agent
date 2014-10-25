@@ -252,8 +252,7 @@ public class Driver implements Runnable
                 actionMap.put(a.getName(),a);
             }
                 
-            boolean shutdownServer = false;
-            while (!shutdownServer) {
+            while (true) {
                 Socket  clientSocket = serverSocket.accept();
                 
                 InputStream sistream =  new BufferedInputStream(clientSocket.getInputStream());
@@ -272,9 +271,7 @@ public class Driver implements Runnable
                
                 try {
                     String methodName = unpacker.readString();                
-                    if (methodName.equals("shutdown")) {
-                        shutdownServer = true;
-                    } else if (methodName.equals("snapshot")) {
+                    if (methodName.equals("snapshot")) {
                         lastSnapshotId++;
                         Snapshot pianola = new Snapshot(lastSnapshot,releaseIsPopupTrigger);
                         packer.write((int)0); // No error happened.
@@ -315,7 +312,6 @@ public class Driver implements Runnable
                     clientSocket.close();
                 }
             }
-            serverSocket.close();
         } catch (IOException ioe) {
             ioe.printStackTrace();    
         }  
