@@ -15,6 +15,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.FutureTask;
 
 import javax.swing.AbstractButton;
 import javax.swing.JCheckBoxMenuItem;
@@ -47,6 +49,8 @@ import javax.swing.tree.TreePath;
 import org.msgpack.packer.Packer;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class SnapshotImpl {
@@ -64,31 +68,26 @@ public class SnapshotImpl {
         this.imageBin = pianola==null ? new ImageBin() : pianola.obtainImageBin();
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
     }
-    public JsonNode buildAndWrite() throws IOException {
-        
-        try {
-            SwingUtilities.invokeAndWait(new Runnable() {
-                
-                @Override
-                public void run() {
-                    try {
+    public JsonNode buildAndWrite() throws Exception {
+    	FutureTask<JsonNode> futureTask = new FutureTask<JsonNode>(
+    			new Callable<JsonNode>() {
+    				@Override
+    				public JsonNode call() throws Exception {
                         Window warray[] = Window.getOwnerlessWindows();
-                        writeWindowArray(packer, warray);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
-        } finally {
+                        return writeWindowArray(warray);
+    				}
+    			}    			
+            );
+
+    	try {
+            SwingUtilities.invokeAndWait(futureTask);
+            return futureTask.get();
+    	} finally {
             this.imageBin.flush();
-        }
+    	}
     }
     
-    private static int countShowing(Component[] warray) {
+ /*   private static int countShowing(Component[] warray) {
         int visibleCount = 0;
         for (int i=0;i<warray.length;i++) {                            
             if (warray[i].isShowing()) {
@@ -96,28 +95,36 @@ public class SnapshotImpl {
             }
         }
         return visibleCount;
-    }
+    }*/
     
-    private void writeWindowArray(Packer packer, Window warray[]) throws IOException {
-        packer.writeArrayBegin(countShowing(warray));
+    private JsonNode writeWindowArray(Window warray[]) throws IOException {
+    	ArrayNode arrayNode = new ArrayNode(JsonNodeFactory.instance);
         for (int i=0;i<warray.length;i++) {
             Window w = warray[i];
             if (w.isShowing()) {
-                writeWindow(packer,w);
+                arrayNode.add(writeWindow(w));
             }        
         }
-        packer.writeArrayEnd();
+        return arrayNode;
     }
     
-    private void writeWindow(Packer packer, Window w) throws IOException {
-        
+    private ArrayNode writeIntegerPair(int a, int b) {
+    	ArrayNode array = JsonNodeFactory.instance.arrayNode();
+    	array.add((int)a);
+    	array.add((int)b);
+    	return array;
+    }
+
+    private JsonNode writeWindow(Window w) throws IOException {
+    	ObjectNode windowNode = JsonNodeFactory.instance.objectNode();
+
         int windowId = windowArray.size();
         windowArray.add(w);
         BufferedImage image = imageBin.obtainImage(w.getSize());
         w.paint(image.getGraphics());
         windowImageMap.put(w, image);
         
-        packer.write((int)windowId);
+        windowNode.put("windowId",(int)windowId);
         
         String title = "";
         if (w instanceof JFrame) {
@@ -126,32 +133,24 @@ public class SnapshotImpl {
             title = ((JDialog)w).getTitle();                                    
         }
 
-        packer.write(title);
-        packer.writeArrayBegin(2);
-        {
-            Point loc = w.getLocationOnScreen();
-            packer.write((int)loc.getX());
-            packer.write((int)loc.getY());
-        }
-        packer.writeArrayEnd();
-        packer.writeArrayBegin(2);
-        {
-            packer.write((int)w.getHeight());
-            packer.write((int)w.getWidth());
-        }
-        packer.writeArrayEnd();
+        windowNode.put("title",title);
         
-        writeMenuBar(packer, w);
-        
-        writePopupLayer(packer,w);
+        Point loc = w.getLocationOnScreen();
+        windowNode.put("loc", writeIntegerPair(loc.x,loc.y)); 
+        windowNode.put("pos", writeIntegerPair((int)w.getHeight(),(int)w.getWidth())); 
+
+        windowNode.put("menuBar", writeMenuBar(w));
+        windowNode.put("popupLayer", writePopupLayer(w));
                         
         RootPaneContainer rpc = (RootPaneContainer)w;
-        writeComponent(packer, (Component) rpc.getContentPane(), w, false);                                                               
+        windowNode.put("rootPane",  writeComponent((Component) rpc.getContentPane(), w, false));                                                               
         
-        writeWindowArray(packer, w.getOwnedWindows());
+        windowNode.put("owned", writeWindowArray(w.getOwnedWindows()));
+        
+        return windowNode;
     }
     
-    private void writeMenuBar(Packer packer, Window w) throws IOException {        
+    private JsonNode writeMenuBar(Window w) throws IOException {        
         JMenuBar menubar = null;
         if (w instanceof JFrame) {
             menubar = ((JFrame)w).getJMenuBar();
@@ -171,7 +170,7 @@ public class SnapshotImpl {
         }                
     }
     
-    private void writePopupLayer(Packer packer, Window w) throws IOException {
+    private JsonNode writePopupLayer(Window w) throws IOException {
         Component[] popupLayerArray = new Component[] {};
         if (w instanceof JFrame) {
             popupLayerArray = ((JFrame)w).getLayeredPane().getComponentsInLayer(JLayeredPane.POPUP_LAYER);
@@ -188,7 +187,7 @@ public class SnapshotImpl {
         packer.writeArrayEnd();
     }
         
-    private void writeComponent(Packer packer, Component c, Component coordBase, boolean isRenderer) throws IOException {
+    private JsonNode writeComponent(Component c, Component coordBase, boolean isRenderer) throws IOException {
         
         int componentId = componentArray.size();
         componentArray.add(c);

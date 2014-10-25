@@ -322,14 +322,13 @@ public class Driver implements SnapshotFactory
     }*/
 
 	@Override
-	public ObjectNode snapshot() {
+	public ObjectNode snapshot() throws Exception {
 		lastSnapshotId++;
 
         SnapshotImpl pianola = new SnapshotImpl(lastSnapshot,releaseIsPopupTrigger);
 		JsonNode windows = pianola.buildAndWrite();
 
 		JsonNodeFactory factory = JsonNodeFactory.instance;
-
 		ObjectNode snapshotNode = factory.objectNode();
 		snapshotNode.put("snapshotId",lastSnapshotId);
 		snapshotNode.put("windows",windows);
