@@ -252,18 +252,21 @@ public class SnapshotImpl {
     	ObjectNode objectTypeNode = JsonNodeFactory.instance.objectNode();
     		
         if (c instanceof JPanel) {
-            packer.write((int)1);
+        	objectTypeNode.put("JPanel", new ArrayNode(JsonNodeFactory.instance));
+
         } else if (c instanceof JToggleButton || c instanceof JCheckBoxMenuItem || c instanceof JRadioButtonMenuItem) {
-            packer.write((int)2);
-            packer.write(((AbstractButton)c).isSelected());                 
+        	objectTypeNode.put("JToggleButton", JsonNodeFactory.instance.booleanNode(((AbstractButton)c).isSelected()));
+
         } else if (c instanceof AbstractButton) { // normal button, not toggle button
-            packer.write((int)3);
+        	objectTypeNode.put("Button", new ArrayNode(JsonNodeFactory.instance));
+
         } else if (c instanceof JTextField ) {
-            packer.write((int)4);
             JTextField textField = (JTextField) c;
-            packer.write((boolean)textField.isEditable());
+        	objectTypeNode.put("JTextField", JsonNodeFactory.instance.booleanNode(textField.isEditable()));
+
         } else if (c instanceof JLabel) {
-            packer.write((int)5);
+        	objectTypeNode.put("JLabel", new ArrayNode(JsonNodeFactory.instance));
+
         } else if (c instanceof JComboBox) {
             packer.write((int)6);
 
@@ -397,7 +400,7 @@ public class SnapshotImpl {
             packer.writeArrayEnd();
             
         } else if (c instanceof JPopupMenu) {                    
-            packer.write((int)50);
+        	objectTypeNode.put("JPopupMenu", new ArrayNode(JsonNodeFactory.instance));
         
         } else if (c instanceof JTabbedPane) {
             packer.write((int)70);
@@ -411,8 +414,7 @@ public class SnapshotImpl {
             }
             packer.writeArrayEnd();
         } else {
-            packer.write((int)77);
-            packer.write(c.getClass().getName());
+        	objectTypeNode.put("JUnknown", JsonNodeFactory.instance.textNode(c.getClass().getName())));
         }
 
     	return objectTypeNode;
