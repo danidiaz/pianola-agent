@@ -48,6 +48,8 @@ import javax.swing.tree.TreePath;
 
 import org.msgpack.packer.Packer;
 
+import sun.security.jca.GetInstance.Instance;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -209,18 +211,19 @@ public class SnapshotImpl {
         
         objectNode.put("csize", writeIntegerPair(c.getHeight(),c.getWidth()));
         
-        writePotentiallyNullString(packer,c.getName());
+        objectNode.put("cname", writePotentiallyNullString(c.getName()));
+
         String tooltipText = (c instanceof JComponent) ? ((JComponent)c).getToolTipText() : "";
-        writePotentiallyNullString(packer,tooltipText);
+        objectNode.put("tooltip", writePotentiallyNullString(tooltipText));
         
         if (c instanceof AbstractButton) {
-            writePotentiallyNullString(packer,((AbstractButton)c).getText());
+        	objectNode.put("ctext", writePotentiallyNullString(((AbstractButton)c).getText()));
         } else if (c instanceof JLabel) {
-            writePotentiallyNullString(packer,((JLabel)c).getText());
+        	objectNode.put("ctext", writePotentiallyNullString(((JLabel)c).getText()));
         } else if (c instanceof JTextComponent) {
-            writePotentiallyNullString(packer,((JTextComponent)c).getText());
+        	objectNode.put("ctext", writePotentiallyNullString(((JTextComponent)c).getText()));
         } else {
-            packer.writeNil();
+        	objectNode.put("ctext", JsonNodeFactory.instance.nullNode());
         }
 
         objectNode.put("cenabled", c.isEnabled());
@@ -246,6 +249,8 @@ public class SnapshotImpl {
     
     private JsonNode writeComponentType(Component c,Component coordBase) throws IOException 
     {
+    	ObjectNode objectTypeNode = JsonNodeFactory.instance.objectNode();
+    		
         if (c instanceof JPanel) {
             packer.write((int)1);
         } else if (c instanceof JToggleButton || c instanceof JCheckBoxMenuItem || c instanceof JRadioButtonMenuItem) {
@@ -409,6 +414,8 @@ public class SnapshotImpl {
             packer.write((int)77);
             packer.write(c.getClass().getName());
         }
+
+    	return objectTypeNode;
     }
     
     private void writeCell(
@@ -442,11 +449,11 @@ public class SnapshotImpl {
     //
     //
     //
-    private static void writePotentiallyNullString(Packer packer, String s) throws IOException {
+    private static JsonNode writePotentiallyNullString(String s) throws IOException {
         if (s==null) {
-            packer.writeNil();
+        	return JsonNodeFactory.instance.nullNode();
         } else {
-            packer.write(s);
+        	return JsonNodeFactory.instance.textNode(s);
         }
     }
 
