@@ -157,17 +157,16 @@ public class SnapshotImpl {
         } else if (w instanceof JDialog) {
             menubar = ((JDialog)w).getJMenuBar();                                    
         }
-        if (menubar==null) {
-            packer.writeArrayBegin(0);
-            packer.writeArrayEnd();
-        } else {
-            packer.writeArrayBegin(menubar.getMenuCount());
+        
+        ArrayNode array = JsonNodeFactory.instance.arrayNode();
+        
+        if (menubar!=null) {
             for (int i=0; i<menubar.getMenuCount();i++) {
-                writeComponent(packer,menubar.getMenu(i), w, false);
+                array.add(writeComponent(menubar.getMenu(i), w, false));
             }
-            packer.writeArrayEnd();
+        }
 
-        }                
+        return array;
     }
     
     private JsonNode writePopupLayer(Window w) throws IOException {
@@ -177,42 +176,38 @@ public class SnapshotImpl {
         } else if (w instanceof JDialog) {
             popupLayerArray = ((JDialog)w).getLayeredPane().getComponentsInLayer(JLayeredPane.POPUP_LAYER);                                    
         }
-        packer.writeArrayBegin(countShowing(popupLayerArray));        
+        
+        ArrayNode array = JsonNodeFactory.instance.arrayNode();
+
         for (int i=0;i<popupLayerArray.length;i++) {
             Component c = (Component) popupLayerArray[i];
             if (c.isShowing()) {
-                writeComponent(packer, c, w, false);    
+                array.add(writeComponent(c, w, false));    
             }
         }
-        packer.writeArrayEnd();
+
+        return array;
     }
         
     private JsonNode writeComponent(Component c, Component coordBase, boolean isRenderer) throws IOException {
         
+    	ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+
         int componentId = componentArray.size();
         componentArray.add(c);
         
-        packer.write((int)componentId);
+        objectNode.put("cid", (int) componentId);
         
-        packer.writeArrayBegin(2);
         {
             if (isRenderer) { // getLocationOnScreen does not work on renderers.
-                packer.write((int)0);
-                packer.write((int)0);
+            	objectNode.put("cloc", writeIntegerPair(0, 0));
             } else {
                 Point loc = c.getLocationOnScreen();
-                packer.write((int)loc.x);
-                packer.write((int)loc.y);
+            	objectNode.put("cloc", writeIntegerPair((int)loc.x, (int)loc.y));
             } 
         }
-        packer.writeArrayEnd();
         
-        packer.writeArrayBegin(2);
-        {
-            packer.write((int)c.getHeight());
-            packer.write((int)c.getWidth());
-        }
-        packer.writeArrayEnd();
+        objectNode.put("csize", writeIntegerPair(c.getHeight(),c.getWidth()));
         
         writePotentiallyNullString(packer,c.getName());
         String tooltipText = (c instanceof JComponent) ? ((JComponent)c).getToolTipText() : "";
@@ -228,28 +223,28 @@ public class SnapshotImpl {
             packer.writeNil();
         }
 
-        packer.write(c.isEnabled());        
+        objectNode.put("cenabled", c.isEnabled());
         
-        writeComponentType(packer, c, coordBase);
+        objectNode.put("ctype",writeComponentType(c,coordBase));
         
         Component children[] = new Component[]{};
         if (c instanceof Container) {            
             children = ((Container)c).getComponents();
         }
                               
-        packer.writeArrayBegin(countShowing(children));
+    	ArrayNode childrenNode = new ArrayNode(JsonNodeFactory.instance);
         for (int i=0;i<children.length;i++) {
             if (children[i].isShowing()) {                                
-                writeComponent(packer, (Component)children[i],coordBase,isRenderer);
+                childrenNode.add(writeComponent((Component)children[i],coordBase,isRenderer));
             }
         }
-        packer.writeArrayEnd();
+
+        objectNode.put("cchildren",childrenNode);
+
+        return objectNode;
     }
     
-    private void writeComponentType(Packer packer, 
-                Component c, 
-                Component coordBase 
-            ) throws IOException 
+    private JsonNode writeComponentType(Component c,Component coordBase) throws IOException 
     {
         if (c instanceof JPanel) {
             packer.write((int)1);
