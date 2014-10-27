@@ -268,14 +268,12 @@ public class SnapshotImpl {
         	objectTypeNode.put("JLabel", new ArrayNode(JsonNodeFactory.instance));
 
         } else if (c instanceof JComboBox) {
-            packer.write((int)6);
-
             JComboBox comboBox = (JComboBox)c;
             ListCellRenderer renderer = comboBox.getRenderer();
             JList dummyJList = new JList();
 
             if (comboBox.getSelectedIndex()==-1) {
-                packer.writeNil();
+            	objectTypeNode.put("JComboBox", JsonNodeFactory.instance.nullNode());
             } else {
                 Component cell = (Component)renderer.getListCellRendererComponent(dummyJList, 
                                 comboBox.getModel().getElementAt(comboBox.getSelectedIndex()), 
@@ -283,70 +281,70 @@ public class SnapshotImpl {
                                 false, 
                                 false
                             );
-                writeComponent(packer, cell, coordBase,true);
+            	objectTypeNode.put("JComboBox", writeComponent(cell, coordBase,true));
             }                          
                        
         } else if (c instanceof JList) {
-            packer.write((int)7);
             JList list = (JList) c;            
             ListCellRenderer renderer = list.getCellRenderer();
             
-            packer.writeArrayBegin((int)list.getModel().getSize());
+            ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
             for (int rowid=0; rowid<list.getModel().getSize(); rowid++) {
                 Point loc = list.getLocationOnScreen();
                 Rectangle cellBounds = list.getCellBounds(rowid, rowid);
-                writeCell(  packer, 
-                            rowid, 
-                            0,
-                            loc.x + cellBounds.x,
-                            loc.y + cellBounds.y,                            
-                            (Component)renderer.getListCellRendererComponent(list, 
-                                    list.getModel().getElementAt(rowid), 
-                                    rowid,
-                                    false, 
+                arrayNode.add(
+                        writeCell(  rowid, 
+                                    0,
+                                    loc.x + cellBounds.x,
+                                    loc.y + cellBounds.y,                            
+                                    (Component)renderer.getListCellRendererComponent(list, 
+                                            list.getModel().getElementAt(rowid), 
+                                            rowid,
+                                            false, 
+                                            false
+                                        ), 
+                                    coordBase,
                                     false
-                                ), 
-                            coordBase,
-                            false
-                            );                                
+                                    )
+                    );                                
             }
-            packer.writeArrayEnd();
+
+            objectTypeNode.put("JList", arrayNode);
             
         } else if (c instanceof JTable) {
-            packer.write((int)8);
             JTable table = (JTable) c;
             TableModel model = table.getModel();
             
             int rowcount = model.getRowCount();
             int columncount = model.getColumnCount();
-            packer.writeArrayBegin(columncount);            
+            ArrayNode outerArrayNode = JsonNodeFactory.instance.arrayNode();
             for (int j=0;j<columncount;j++) {            
-                packer.writeArrayBegin(rowcount);
+                ArrayNode innerArrayNode = JsonNodeFactory.instance.arrayNode();
                 for (int i=0;i<rowcount;i++) {
                     Point loc = table.getLocationOnScreen();
                     Rectangle cellBounds = table.getCellRect(i, j, false);
                     
                     TableCellRenderer renderer = table.getCellRenderer(i, j);                    
-                    writeCell(  
-                            packer, 
-                            i, 
-                            j, 
-                            loc.x + cellBounds.x,
-                            loc.y + cellBounds.y,                              
-                            (Component)renderer.getTableCellRendererComponent(table, 
-                                    model.getValueAt(i, j),  
-                                    false, 
-                                    false,
-                                    i,
-                                    j
-                                ), 
-                            coordBase,
-                            false 
-                            );                                                                        
+                    innerArrayNode.add(
+                            writeCell(  i, 
+                                        j, 
+                                        loc.x + cellBounds.x,
+                                        loc.y + cellBounds.y,                              
+                                        (Component)renderer.getTableCellRendererComponent(table,
+                                                    model.getValueAt(i, j),  
+                                                    false, 
+                                                    false,
+                                                    i,
+                                                    j
+                                        ), 
+                                        coordBase,
+                                        false 
+                                    )
+                     );                                                                        
                 }
-                packer.writeArrayEnd();
+                outerArrayNode.add(innerArrayNode);
             }                        
-            packer.writeArrayEnd();            
+            objectTypeNode.put("JTable", outerArrayNode);
             
         } else if (c instanceof JTree) {
             packer.write((int)9);
@@ -355,6 +353,7 @@ public class SnapshotImpl {
             TreeCellRenderer renderer = tree.getCellRenderer();
             
             packer.writeArrayBegin(tree.isRootVisible()?1:model.getChildCount(model.getRoot()));
+            ArrayNode outerArrayNode = JsonNodeFactory.instance.arrayNode();
             int basepathcount = tree.isRootVisible()?1:2;
             int expectedpathcount = basepathcount;
             for (int rowid=0;rowid<tree.getRowCount();rowid++) {
@@ -398,30 +397,31 @@ public class SnapshotImpl {
                 packer.writeArrayEnd();
             }
             packer.writeArrayEnd();
+            objectTypeNode.put("JTree", outerArrayNode);
             
         } else if (c instanceof JPopupMenu) {                    
         	objectTypeNode.put("JPopupMenu", new ArrayNode(JsonNodeFactory.instance));
         
         } else if (c instanceof JTabbedPane) {
-            packer.write((int)70);
             JTabbedPane tpane = (JTabbedPane)c;
-            packer.writeArrayBegin(tpane.getTabCount());
+            ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
             for (int i=0; i<tpane.getTabCount();i++) {
-                packer.write((int)i);
-                packer.write(tpane.getTitleAt(i));
-                writePotentiallyNullString(packer,tpane.getToolTipTextAt(i));
-                packer.write(i==tpane.getSelectedIndex());
+                ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+                objectNode.put("tabId", (int)i);
+                objectNode.put("tabText", tpane.getTitleAt(i));
+                objectNode.put("tabToolTip", writePotentiallyNullString(tpane.getToolTipTextAt(i)));
+                objectNode.put("isTabSelected", i==tpane.getSelectedIndex());
+                arrayNode.add(objectNode);
             }
-            packer.writeArrayEnd();
+            objectTypeNode.put("JTabbedPane", arrayNode);
         } else {
-        	objectTypeNode.put("JUnknown", JsonNodeFactory.instance.textNode(c.getClass().getName())));
+        	objectTypeNode.put("JUnknown", JsonNodeFactory.instance.textNode(c.getClass().getName()));
         }
 
     	return objectTypeNode;
     }
     
-    private void writeCell(
-                Packer packer, 
+    private JsonNode writeCell(
                 int rowid, 
                 int colid, 
                 int xPos,
@@ -431,21 +431,15 @@ public class SnapshotImpl {
                 boolean belongsToJTree 
             ) throws IOException 
     {
-        packer.write((int)rowid);
-        packer.write((int)colid);
-        
-        packer.writeArrayBegin(2);
-        packer.write((int)xPos);
-        packer.write((int)yPos);
-        packer.writeArrayEnd();
-        
-        packer.writeArrayBegin(2);
-        packer.write((int)rendererc.getHeight());
-        packer.write((int)rendererc.getWidth());
-        packer.writeArrayEnd();
-        
-        writeComponent(packer, rendererc, coordBase, true);
-        packer.write((boolean)belongsToJTree);
+    	ObjectNode objectNode = JsonNodeFactory.instance.objectNode();
+    	objectNode.put("rowid", (int)rowid);
+    	objectNode.put("colid", (int)colid);
+
+    	objectNode.put("cellPos", writeIntegerPair((int)xPos,(int)yPos));
+    	objectNode.put("cellDim", writeIntegerPair((int)rendererc.getHeight(),rendererc.getWidth()));
+    	objectNode.put("renderer", writeComponent(rendererc, coordBase, true));
+    	objectNode.put("isFromTree", (boolean)belongsToJTree);
+        return objectNode;
     }
     
     //
