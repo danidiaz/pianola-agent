@@ -12,7 +12,9 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -352,6 +354,11 @@ public class SnapshotImpl {
             TreeModel model = tree.getModel();
             TreeCellRenderer renderer = tree.getCellRenderer();
             
+            Deque<JsonNode> stack = new LinkedList<JsonNode>();
+            for (int i=0; i < (tree.isRootVisible() ? 1 : model.getChildCount(model.getRoot())); i++) {
+            	stack.addFirst();
+            }
+
             packer.writeArrayBegin(tree.isRootVisible()?1:model.getChildCount(model.getRoot()));
             ArrayNode outerArrayNode = JsonNodeFactory.instance.arrayNode();
             int basepathcount = tree.isRootVisible()?1:2;
@@ -736,4 +743,26 @@ public class SnapshotImpl {
         postMouseEvent(component, MouseEvent.MOUSE_RELEASED, MouseEvent.BUTTON1_MASK, point, clickCount, false);
         postMouseEvent(component, MouseEvent.MOUSE_CLICKED, MouseEvent.BUTTON1_MASK, point, clickCount, false);
     }
+    
+    private static class TreeNodeHelper {
+    	private JsonNode node;
+    	private ArrayNode children = JsonNodeFactory.instance.arrayNode();
+    	
+    	public TreeNodeHelper(JsonNode node) {
+			super();
+			this.node = node;
+		}
+
+    	void add(JsonNode child) {
+    		children.add(child);
+    	}
+
+		JsonNode convert2json() {
+    		ArrayNode arrayNode = JsonNodeFactory.instance.arrayNode();
+    		arrayNode.add(node);
+    		arrayNode.add(children);
+    		return arrayNode;
+    	}
+    }
+   
 }
