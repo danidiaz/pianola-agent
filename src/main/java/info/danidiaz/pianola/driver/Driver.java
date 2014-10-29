@@ -1,39 +1,16 @@
 package info.danidiaz.pianola.driver;
 
-import java.awt.image.BufferedImage;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
 
-import javax.imageio.ImageIO;
-
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.googlecode.jsonrpc4j.JsonRpcServer;
 import com.googlecode.jsonrpc4j.StreamServer;
 
-import org.msgpack.MessagePack;
-import org.msgpack.MessageTypeException;
-import org.msgpack.packer.MessagePackPacker;
-import org.msgpack.packer.Packer;
-import org.msgpack.unpacker.MessagePackUnpacker;
-import org.msgpack.unpacker.Unpacker;
-
-public class Driver implements SnapshotFactory
+public class Driver implements DriverInterface
 {
     
     // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
@@ -43,7 +20,7 @@ public class Driver implements SnapshotFactory
     boolean releaseIsPopupTrigger;
     
     private int lastSnapshotId = 0;
-    private SnapshotImpl lastSnapshot = null; 
+    private Snapshot lastSnapshot = null; 
     
     private ByteArrayOutputStream imageBuffer = new ByteArrayOutputStream();
     
@@ -67,10 +44,9 @@ public class Driver implements SnapshotFactory
                 }
             }                        
             
-            MessagePack messagePack = new MessagePack(); 
         	JsonRpcServer jsonRpcServer = new JsonRpcServer(
         			new Driver(releaseIsPopupTrigger),
-        			SnapshotFactory.class
+        			DriverInterface.class
         	);
 
             ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
@@ -325,7 +301,7 @@ public class Driver implements SnapshotFactory
 	public ObjectNode snapshot() throws Exception {
 		lastSnapshotId++;
 
-        SnapshotImpl pianola = new SnapshotImpl(lastSnapshot,releaseIsPopupTrigger);
+        Snapshot pianola = new Snapshot(lastSnapshot,releaseIsPopupTrigger);
 		JsonNode windows = pianola.buildAndWrite();
 
 		JsonNodeFactory factory = JsonNodeFactory.instance;
