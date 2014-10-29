@@ -763,6 +763,11 @@ public class SnapshotImpl {
     		arrayNode.add(children);
     		return arrayNode;
     	}
+
+		public ArrayNode getChildren() {
+			return children;
+		}
+		
     }
    
 }
