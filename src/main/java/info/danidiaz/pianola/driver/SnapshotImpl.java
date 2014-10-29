@@ -349,62 +349,59 @@ public class SnapshotImpl {
             objectTypeNode.put("JTable", outerArrayNode);
             
         } else if (c instanceof JTree) {
-            packer.write((int)9);
             JTree tree = (JTree) c;
             TreeModel model = tree.getModel();
             TreeCellRenderer renderer = tree.getCellRenderer();
             
-            Deque<JsonNode> stack = new LinkedList<JsonNode>();
-            for (int i=0; i < (tree.isRootVisible() ? 1 : model.getChildCount(model.getRoot())); i++) {
-            	stack.addFirst();
-            }
+        	// http://programmers.stackexchange.com/questions/214227/reconstructing-a-tree-from-depth-information
+            Deque<TreeNodeHelper> stack = new LinkedList<TreeNodeHelper>();
+            stack.addFirst(new TreeNodeHelper(JsonNodeFactory.instance.nullNode()));
 
-            packer.writeArrayBegin(tree.isRootVisible()?1:model.getChildCount(model.getRoot()));
-            ArrayNode outerArrayNode = JsonNodeFactory.instance.arrayNode();
-            int basepathcount = tree.isRootVisible()?1:2;
-            int expectedpathcount = basepathcount;
+            int expectedpathcount = 1;
             for (int rowid=0;rowid<tree.getRowCount();rowid++) {
                 TreePath path = tree.getPathForRow(rowid);
                 if (path.getPathCount()<expectedpathcount) {
-                    for (int i=0; i < expectedpathcount - path.getPathCount();i++) {
-                        packer.writeArrayEnd();
+                	int delta = expectedpathcount - path.getPathCount();
+                    for (int i=0; i < delta; i++) {
+                    	TreeNodeHelper elem1 = stack.removeFirst();
+                    	TreeNodeHelper elem2 = stack.removeFirst();
+                    	elem2.add(elem1.convert2json());
+                    	stack.addFirst(elem2);
                     }
-                    expectedpathcount = path.getPathCount();
+                    expectedpathcount = path.getPathCount() + 1;
                 }                
                 Point loc = tree.getLocationOnScreen();
                 Rectangle cellBounds = tree.getRowBounds(rowid);
-                writeCell(  
-                        packer, 
-                        rowid, 
-                        0, 
-                        loc.x + cellBounds.x,
-                        loc.y + cellBounds.y,                         
-                        (Component)renderer.getTreeCellRendererComponent(
-                                tree,
-                                path.getLastPathComponent(),
-                                tree.isRowSelected(rowid),
-                                tree.isExpanded(rowid),
-                                model.isLeaf(path.getLastPathComponent()),
-                                rowid,
+                stack.addFirst(
+                	new TreeNodeHelper(
+                        writeCell(  
+                                rowid, 
+                                0, 
+                                loc.x + cellBounds.x,
+                                loc.y + cellBounds.y,                         
+                                (Component)renderer.getTreeCellRendererComponent(
+                                        tree,
+                                        path.getLastPathComponent(),
+                                        tree.isRowSelected(rowid),
+                                        tree.isExpanded(rowid),
+                                        model.isLeaf(path.getLastPathComponent()),
+                                        rowid,
+                                        true
+                                    ), 
+                                coordBase,
                                 true
-                            ), 
-                        coordBase,
-                        true
-                        );                                                 
-                
-                if (tree.isExpanded(rowid)) {
-                    packer.writeArrayBegin(model.getChildCount(path.getLastPathComponent()));
-                    expectedpathcount++;
-                } else {
-                    packer.writeArrayBegin(0);
-                    packer.writeArrayEnd();   
-                }                
+                                )
+                        )
+                	);                                                 
             }
-            for (int i=0; i < expectedpathcount - basepathcount;i++) {
-                packer.writeArrayEnd();
+            while (stack.size()>1) {
+            	TreeNodeHelper elem1 = stack.removeFirst();
+            	TreeNodeHelper elem2 = stack.removeFirst();
+            	elem2.add(elem1.convert2json());
+            	stack.addFirst(elem2);
             }
-            packer.writeArrayEnd();
-            objectTypeNode.put("JTree", outerArrayNode);
+            ArrayNode topLevelNodes = stack.removeFirst().getChildren();
+            objectTypeNode.put("JTree", topLevelNodes);
             
         } else if (c instanceof JPopupMenu) {                    
         	objectTypeNode.put("JPopupMenu", new ArrayNode(JsonNodeFactory.instance));
