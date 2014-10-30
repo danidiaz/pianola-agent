@@ -234,7 +234,7 @@ public class Snapshot {
                               
     	ArrayNode childrenNode = new ArrayNode(JsonNodeFactory.instance);
         for (int i=0;i<children.length;i++) {
-            if (children[i].isShowing()) {                                
+            if (children[i].isShowing()||isRenderer) {                                
                 childrenNode.add(writeComponent((Component)children[i],coordBase,isRenderer));
             }
         }
