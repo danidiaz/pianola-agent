@@ -34,7 +34,7 @@ public class Agent
         // https://jersey.java.net/documentation/latest/appendix-properties.html
         // 
         ResourceConfig rc = new ResourceConfig();
-        rc.registerInstances(new FooResource());
+        rc.registerInstances(new Resource());
         ServletContainer sc = new ServletContainer(rc);
         ServletHolder holder = new ServletHolder(sc);
         context.addServlet(holder, "/*");

@@ -10,8 +10,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Path("/entrypoint")
-public class FooResource {
-	public FooResource() {
+public class Resource {
+	public Resource() {
 		System.out.println("is this a singleton, I wonder??????");
 	} 
     @GET
