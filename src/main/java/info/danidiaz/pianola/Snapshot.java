@@ -51,22 +51,31 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class Snapshot {
+public final class Snapshot {
+
     private ImageBin imageBin;
     
     private List<Window> windowArray = new ArrayList<Window>();
     private Map<Window,BufferedImage> windowImageMap = new HashMap<Window,BufferedImage>();
-    
     private List<Component> componentArray = new ArrayList<Component>();
     
     boolean releaseIsPopupTrigger;
     
-    public Snapshot(Snapshot pianola, boolean releaseIsPopupTrigger) {
-        this.imageBin = pianola==null ? new ImageBin() : pianola.obtainImageBin();
+    private JsonNode json;
+    
+	public static Snapshot build(ImageBin imageBin, boolean releaseIsPopupTrigger) throws Exception {
+    	Snapshot snapshot = new Snapshot(imageBin, releaseIsPopupTrigger);
+    	JsonNode json = snapshot.buildAndWrite();
+    	snapshot.setJson(json);
+    	return snapshot;
+    }
+
+    private Snapshot(ImageBin imageBin, boolean releaseIsPopupTrigger) {
+        this.imageBin = imageBin;
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
     }
 
-    public JsonNode buildAndWrite() throws Exception {
+    private final JsonNode buildAndWrite() throws Exception {
     	FutureTask<JsonNode> futureTask = new FutureTask<JsonNode>(
     			new Callable<JsonNode>() {
     				@Override
@@ -761,4 +770,12 @@ public class Snapshot {
 		
     }
    
+    public JsonNode getJson() {
+		return json;
+	}
+
+	public void setJson(JsonNode json) {
+		this.json = json;
+	}
+
 }
