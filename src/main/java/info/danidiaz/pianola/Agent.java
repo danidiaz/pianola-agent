@@ -1,69 +1,63 @@
-package info.danidiaz.pianola.driver;
+package info.danidiaz.pianola;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.ServerSocket;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.googlecode.jsonrpc4j.JsonRpcServer;
-import com.googlecode.jsonrpc4j.StreamServer;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.server.ServerProperties;
+import org.glassfish.jersey.servlet.ServletContainer;
 
-public class Driver implements DriverInterface
+//import com.fasterxml.jackson.databind.JsonNode;
+//import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+//import com.fasterxml.jackson.databind.node.ObjectNode;
+
+public class Agent 
 {
-    
-    // http://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xml
-    private final static int DEFAULT_PORT = 26060;
-    private final static int MAX_THREADS = 1;
-    
-    boolean releaseIsPopupTrigger;
-    
-    private int lastSnapshotId = 0;
-    private Snapshot lastSnapshot = null; 
-    
-    private ByteArrayOutputStream imageBuffer = new ByteArrayOutputStream();
-    
+	  private final static int DEFAULT_PORT = 26060;	
+	
+	
     // http://docs.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html
     public static void premain(String agentArgs) {
-        agentArgs = agentArgs == null ? "" : agentArgs;
-        
-        System.out.println( "Hi, I'm the agent, started with options: " + agentArgs );
-                
+        // https://nikolaygrozev.wordpress.com/2014/10/16/rest-with-embedded-jetty-and-jersey-in-a-single-jar-step-by-step/
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
+        context.setContextPath("/");
+
+        Server jettyServer = new Server(DEFAULT_PORT);
+        jettyServer.setHandler(context);
+
+        // https://nikolaygrozev.wordpress.com/2014/10/16/rest-with-embedded-jetty-and-jersey-in-a-single-jar-step-by-step/
+        // https://jersey.java.net/documentation/latest/appendix-properties.html
+        // 
+        ResourceConfig rc = new ResourceConfig();
+        rc.registerInstances(new FooResource());
+        ServletContainer sc = new ServletContainer(rc);
+        ServletHolder holder = new ServletHolder(sc);
+        context.addServlet(holder, "/*");
+        //ServletHolder holder = context.addServlet(org.glassfish.jersey.servlet.ServletContainer.class, "/*");
+        //holder.setInitOrder(0);
+
+        // Tells the Jersey Servlet which REST service/class to load.
+        //holder.setInitParameter(
+        //   ServerProperties.PROVIDER_PACKAGES,
+        //   Agent.class.getPackage().getName());
+ 
         try {
-            int port = DEFAULT_PORT;
-            boolean releaseIsPopupTrigger = true;            
-            String [] splittedArgs = agentArgs.split(",",0);
-            for (int i=0;i<splittedArgs.length;i++) {
-                String arg = splittedArgs[i];
-                if (arg.startsWith("port")) {
-                    port = Integer.decode(arg.substring(arg.indexOf('/')+1));
-                } else if (arg.startsWith("popupTrigger")) {
-                    releaseIsPopupTrigger =
-                            arg.substring(arg.indexOf('/')+1).equals("release");
-                }
-            }                        
-            
-        	JsonRpcServer jsonRpcServer = new JsonRpcServer(
-        			new Driver(releaseIsPopupTrigger),
-        			DriverInterface.class
-        	);
-
-            ServerSocket serverSocket = new ServerSocket(DEFAULT_PORT);
-            StreamServer streamServer = new StreamServer(jsonRpcServer, MAX_THREADS, serverSocket);
-            streamServer.start();
-
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }        	
+            jettyServer.start();
+            // jettyServer.join();
+            System.out.println("Server started!");
+        } catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+            // jettyServer.destroy();
+        }
     }
 
-    public Driver(boolean releaseIsPopupTrigger) {
-        super();
-        this.releaseIsPopupTrigger = releaseIsPopupTrigger;
-    }
     
 /*    private enum Action {
         CLICK("click") {
@@ -297,20 +291,4 @@ public class Driver implements DriverInterface
         }  
     }*/
 
-	@Override
-	public ObjectNode snapshot() throws Exception {
-		lastSnapshotId++;
-
-        Snapshot pianola = new Snapshot(lastSnapshot,releaseIsPopupTrigger);
-		JsonNode windows = pianola.buildAndWrite();
-
-		JsonNodeFactory factory = JsonNodeFactory.instance;
-		ObjectNode snapshotNode = factory.objectNode();
-		snapshotNode.put("snapshotId",lastSnapshotId);
-		snapshotNode.put("windows",windows);
-
-        lastSnapshot = pianola;    
-
-        return snapshotNode;
-	} 
 }
