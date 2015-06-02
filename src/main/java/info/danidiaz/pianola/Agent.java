@@ -34,7 +34,7 @@ public class Agent
         // https://jersey.java.net/documentation/latest/appendix-properties.html
         // 
         ResourceConfig rc = new ResourceConfig();
-        rc.registerInstances(new Resource());
+        rc.registerInstances(new Resource(0));
         ServletContainer sc = new ServletContainer(rc);
         ServletHolder holder = new ServletHolder(sc);
         context.addServlet(holder, "/*");
@@ -49,7 +49,6 @@ public class Agent
         try {
             jettyServer.start();
             // jettyServer.join();
-            System.out.println("Server started!");
         } catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
