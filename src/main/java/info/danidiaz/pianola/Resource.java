@@ -3,6 +3,7 @@ package info.danidiaz.pianola;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import javax.ws.rs.GET;
@@ -25,7 +26,7 @@ public class Resource {
 	private ImageBin imageBin;
 
     public Resource(int nextId) {
-    	this(nextId, new TreeMap<Integer,Snapshot>());
+    	this(nextId, Collections.<Integer,Snapshot>emptyMap());
     }
 
     public Resource(int nextId, Map<Integer, Snapshot> snapsots) {
@@ -53,6 +54,14 @@ public class Resource {
     }
 
 	@GET
+    @Path("snapshots")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Set<Integer> listSnapshots() {
+        return snapsotMap.keySet();
+    }
+
+	/*
+	@GET
     @Produces(MediaType.TEXT_PLAIN)
     public String test() {
         return "Test";
@@ -66,4 +75,5 @@ public class Resource {
         node.put("user", "jDoe");
         return node;
     }
+    */
 }
