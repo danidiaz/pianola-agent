@@ -6,9 +6,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import javax.ws.rs.ClientErrorException;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.MediaType;
@@ -20,7 +22,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Path("/")
 public class Resource {
-	
+
+    private static final int NEXT_ID_WRAPARAOUND = 30000;
+
 	private int nextId;
 	private Map<Integer,Snapshot> snapsotMap;
 	private ImageBin imageBin;
@@ -43,13 +47,16 @@ public class Resource {
 		try {
 			Snapshot snapshot = Snapshot.build(imageBin, false);
 			this.snapsotMap = Collections.singletonMap(this.nextId, snapshot); 
-			URI createdUri = URI.create("/" + this.nextId);
+			URI createdUri = URI.create("/snapshots/" + this.nextId);
 			return Response.created(createdUri).build();
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new ServerErrorException(500);
 		} finally {
 			this.nextId++;
+			if (this.nextId == NEXT_ID_WRAPARAOUND) {
+				this.nextId = 0;
+			}
 		}
     }
 
@@ -58,6 +65,17 @@ public class Resource {
     @Produces(MediaType.APPLICATION_JSON)
     public Set<Integer> listSnapshots() {
         return snapsotMap.keySet();
+    }
+
+	@GET
+    @Path("snapshots/{snapshotId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public JsonNode getSnapshot(@PathParam("snapshotId") Integer snapshotId) {
+		if (snapsotMap.containsKey(snapshotId)) {
+			return this.snapsotMap.get(snapshotId).getJson();
+		} else {
+			throw new ClientErrorException(404);
+		}
     }
 
 	/*
