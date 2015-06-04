@@ -406,6 +406,9 @@ public final class Snapshot {
             ArrayNode topLevelNodes = stack.removeFirst().getChildren();
             objectTypeNode.put("JTree", topLevelNodes);
             
+        } else if (c instanceof JMenuBar) {                    
+        	objectTypeNode.put("JMenuBar", new ArrayNode(JsonNodeFactory.instance));
+
         } else if (c instanceof JPopupMenu) {                    
         	objectTypeNode.put("JPopupMenu", new ArrayNode(JsonNodeFactory.instance));
         
