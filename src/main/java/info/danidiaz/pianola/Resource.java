@@ -1,7 +1,11 @@
 package info.danidiaz.pianola;
 
+import info.danidiaz.pianola.Snapshot.WindowWrapper;
+
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -73,6 +77,24 @@ public class Resource {
     public JsonNode getSnapshot(@PathParam("snapshotId") Integer snapshotId) {
 		if (snapsotMap.containsKey(snapshotId)) {
 			return this.snapsotMap.get(snapshotId).getJson();
+		} else {
+			throw new ClientErrorException(404);
+		}
+    }
+
+
+	@GET
+    @Path("snapshots/{snapshotId}/windows")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<Integer> getWindows( @PathParam("snapshotId") Integer snapshotId ) {
+		if (snapsotMap.containsKey(snapshotId)) {
+			List<WindowWrapper> windows = 
+					this.snapsotMap.get(snapshotId).getWindowArray();
+			List<Integer> windowIds = new ArrayList<>();
+			for (int i = 0; i < windows.size(); i++) {
+				windowIds.add(i);
+			}
+			return windowIds;
 		} else {
 			throw new ClientErrorException(404);
 		}

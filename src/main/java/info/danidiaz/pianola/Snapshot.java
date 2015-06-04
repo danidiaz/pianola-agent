@@ -778,6 +778,10 @@ public final class Snapshot {
 		this.json = json;
 	}
 
+	public List<WindowWrapper> getWindowArray() {
+		return windowArray;
+	}
+
 	public static class WindowWrapper {
 		private Window window;
 		private JsonNode json;
