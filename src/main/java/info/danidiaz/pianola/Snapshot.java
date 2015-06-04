@@ -55,8 +55,8 @@ public final class Snapshot {
 
     private ImageBin imageBin;
     
-    private List<Window> windowArray = new ArrayList<Window>();
-    private Map<Window,BufferedImage> windowImageMap = new HashMap<Window,BufferedImage>();
+    private List<WindowWrapper> windowArray = new ArrayList<WindowWrapper>();
+    //private Map<Window,BufferedImage> windowImageMap = new HashMap<Window,BufferedImage>();
     private List<Component> componentArray = new ArrayList<Component>();
     
     boolean releaseIsPopupTrigger;
@@ -126,10 +126,8 @@ public final class Snapshot {
     	ObjectNode windowNode = JsonNodeFactory.instance.objectNode();
 
         int windowId = windowArray.size();
-        windowArray.add(w);
         BufferedImage image = imageBin.obtainImage(w.getSize());
         w.paint(image.getGraphics());
-        windowImageMap.put(w, image);
         
         windowNode.put("windowId",(int)windowId);
         
@@ -153,7 +151,7 @@ public final class Snapshot {
         windowNode.put("rootPane",  writeComponent((Component) rpc.getContentPane(), w, false));                                                               
         
         windowNode.put("owned", writeWindowArray(w.getOwnedWindows()));
-        
+        windowArray.add(new WindowWrapper(w, windowNode, image));
         return windowNode;
     }
     
@@ -664,12 +662,11 @@ public final class Snapshot {
     }
               
     public BufferedImage getWindowImage(final int windowId) {
-       Window window = windowArray.get(windowId);
-       return windowImageMap.get(window);
+       return windowArray.get(windowId).getImage();
     }
 
     public void closeWindow(final int windowId) {
-        Window window = windowArray.get(windowId);
+        Window window = windowArray.get(windowId).getWindow();
         
         java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(
                     new WindowEvent(window, WindowEvent.WINDOW_CLOSING) 
@@ -677,7 +674,7 @@ public final class Snapshot {
     }
     
     public void toFront(final int windowId) {
-        final Window window = windowArray.get(windowId);
+        final Window window = windowArray.get(windowId).getWindow();
         
         SwingUtilities.invokeLater(new Runnable() {
             @Override
@@ -691,7 +688,7 @@ public final class Snapshot {
     }
         
     public void escape(final int windowid) {
-        Window window = windowArray.get(windowid);
+        Window window = windowArray.get(windowid).getWindow();
         
         java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(
                 new KeyEvent( window, 
@@ -704,7 +701,7 @@ public final class Snapshot {
     }    
     
     public void enter(final int windowid) {
-        Window window = windowArray.get(windowid);
+        Window window = windowArray.get(windowid).getWindow();
         
         java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue().postEvent(
                 new KeyEvent( window, 
@@ -716,9 +713,9 @@ public final class Snapshot {
                         ));
     }     
         
-    private ImageBin obtainImageBin() {
+/*    private ImageBin obtainImageBin() {
         return new ImageBin(windowImageMap.values());
-    }
+    }*/
     
     private static void postMouseEvent(Component component, 
             int type, 
@@ -781,4 +778,29 @@ public final class Snapshot {
 		this.json = json;
 	}
 
+	public static class WindowWrapper {
+		private Window window;
+		private JsonNode json;
+		private BufferedImage image;
+
+		public WindowWrapper(Window window, JsonNode json, BufferedImage image) {
+			super();
+			this.window = window;
+			this.json = json;
+			this.image = image;
+		}
+
+		public Window getWindow() {
+			return window;
+		}
+
+		public JsonNode getJson() {
+			return json;
+		}
+
+		public BufferedImage getImage() {
+			return image;
+		}
+		
+	}
 }
