@@ -1,10 +1,13 @@
 The Pianola agent instruments a running Java Swing desktop application.
 
-When the application starts, the agent opens a port (default 26060) and begins listening for requests. Keep in mind that, as of now, the connection is **completely unsecured**!
+When the application starts, the agent opens a port (default 26060) and begins
+listening for requests. Keep in mind that, as of now, the connection is
+**completely unsecured**!
 
 The endpoint offers a REST API.
 
-    - POST to /snapshots creates a "snapshot" resource containing the state of the gui at that moment.
+    - POST to /snapshots creates a "snapshot" resource containing the state of
+      the gui at that moment.
 
     - GET to /snapshots/snapshotId gets a JSON representation of the snapshot.
 
@@ -26,7 +29,11 @@ When starting the AUT an argument of the following form must be passed to the JV
 
 > -javaagent:path_to_pianola_agent_jar
 
-See the documentation of the [java.lang.instrument](http://docs.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html) packgage for details on how to start agents from the command line.
+There's no need to add the jar to the classpath as well.
+
+See the documentation of the
+[java.lang.instrument](http://docs.oracle.com/javase/6/docs/api/java/lang/instrument/package-summary.html)
+packgage for details on how to start agents from the command line.
 
 If configured correctly, the agent should start automatically with the application.
 
