@@ -2,6 +2,8 @@ package info.danidiaz.pianola;
 
 import info.danidiaz.pianola.Snapshot.WindowWrapper;
 
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,6 +97,45 @@ public class RootResource {
 				windowIds.add(i);
 			}
 			return windowIds;
+		} else {
+			throw new ClientErrorException(404);
+		}
+    }
+
+
+	@GET
+    @Path("snapshots/{snapshotId}/windows/{windowId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public JsonNode getWindow( @PathParam("snapshotId") Integer snapshotId,
+                                    @PathParam("windowId") int windowId
+    							  ) {
+		if (snapsotMap.containsKey(snapshotId)) {
+			List<WindowWrapper> windows = 
+					this.snapsotMap.get(snapshotId).getWindowArray();
+			if (windowId < windows.size()) {
+				return windows.get(windowId).getJson();
+			} else {
+                throw new ClientErrorException(404);
+			}
+		} else {
+			throw new ClientErrorException(404);
+		}
+    }
+
+	@GET
+    @Path("snapshots/{snapshotId}/windows/{windowId}/image")
+	@Produces("image/png")
+    public BufferedImage getWindowImage( @PathParam("snapshotId") Integer snapshotId,
+                                    @PathParam("windowId") int windowId
+    							  ) {
+		if (snapsotMap.containsKey(snapshotId)) {
+			List<WindowWrapper> windows = 
+					this.snapsotMap.get(snapshotId).getWindowArray();
+			if (windowId < windows.size()) {
+				return windows.get(windowId).getImage();
+			} else {
+                throw new ClientErrorException(404);
+			}
 		} else {
 			throw new ClientErrorException(404);
 		}
