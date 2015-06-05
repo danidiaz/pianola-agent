@@ -8,6 +8,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class ImagePool {
 
     /*Some multimap class from Guava or Apache Commons would be better here,
@@ -52,5 +57,19 @@ public class ImagePool {
         } 
         
         return new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_RGB);
+    }
+    
+    public JsonNode asJson() {
+      	ArrayNode array = JsonNodeFactory.instance.arrayNode();
+      	for (Map.Entry<Dimension, List<BufferedImage>> entry : 
+      			this.dimIndexedMultimap.entrySet())
+      	{
+      		ObjectNode node = JsonNodeFactory.instance.objectNode();
+      		node.put("width", entry.getKey().width);
+      		node.put("height", entry.getKey().height);
+      		node.put("count", entry.getValue().size());
+      		array.add(node);
+      	}
+    	return array;
     }
 }

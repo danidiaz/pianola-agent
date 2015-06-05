@@ -33,7 +33,7 @@ public class RootResource {
 
 	private int nextId;
 	private Map<Integer,Snapshot> snapsotMap;
-	private ImagePool imageBin;
+	private ImagePool imagePool;
 
     public RootResource(int nextId) {
     	this(nextId, Collections.<Integer,Snapshot>emptyMap());
@@ -43,7 +43,7 @@ public class RootResource {
 		super();
 		this.nextId = nextId;
 		this.snapsotMap = snapsots;
-		this.imageBin = new ImagePool();
+		this.imagePool = new ImagePool();
 	}
 
 	@POST
@@ -51,7 +51,7 @@ public class RootResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response takeSnapshot() {
 		try {
-			Snapshot snapshot = Snapshot.build(imageBin, false);
+			Snapshot snapshot = Snapshot.build(imagePool, false);
 			this.snapsotMap = Collections.singletonMap(this.nextId, snapshot); 
 			URI createdUri = URI.create("/snapshots/" + this.nextId);
 			return Response.created(createdUri).build();
@@ -71,6 +71,13 @@ public class RootResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Set<Integer> listSnapshots() {
         return snapsotMap.keySet();
+    }
+
+	@GET
+    @Path("imagepool")
+    @Produces(MediaType.APPLICATION_JSON)
+    public JsonNode getImagePoolStats() {
+        return this.imagePool.asJson();
     }
 
 	@GET
@@ -141,20 +148,4 @@ public class RootResource {
 		}
     }
 
-	/*
-	@GET
-    @Produces(MediaType.TEXT_PLAIN)
-    public String test() {
-        return "Test";
-    }
-    
-    @GET
-    @Path("jsonny")
-    @Produces(MediaType.APPLICATION_JSON)
-    public JsonNode getUser() {
-        ObjectNode node = JsonNodeFactory.instance.objectNode();
-        node.put("user", "jDoe");
-        return node;
-    }
-    */
 }
