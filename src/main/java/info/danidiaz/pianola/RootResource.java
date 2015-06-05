@@ -25,23 +25,23 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 @Path("/")
-public class Resource {
+public class RootResource {
 
     private static final int NEXT_ID_WRAPARAOUND = 30000;
 
 	private int nextId;
 	private Map<Integer,Snapshot> snapsotMap;
-	private ImageBin imageBin;
+	private ImagePool imageBin;
 
-    public Resource(int nextId) {
+    public RootResource(int nextId) {
     	this(nextId, Collections.<Integer,Snapshot>emptyMap());
     }
 
-    public Resource(int nextId, Map<Integer, Snapshot> snapsots) {
+    public RootResource(int nextId, Map<Integer, Snapshot> snapsots) {
 		super();
 		this.nextId = nextId;
 		this.snapsotMap = snapsots;
-		this.imageBin = new ImageBin();
+		this.imageBin = new ImagePool();
 	}
 
 	@POST

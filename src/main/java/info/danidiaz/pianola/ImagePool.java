@@ -8,17 +8,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class ImageBin {
+public class ImagePool {
 
     /*Some multimap class from Guava or Apache Commons would be better here,
     but I want to avoid dependencies.*/
     private Map<Dimension,List<BufferedImage>> dimIndexedMultimap;
     
-    public ImageBin() {
+    public ImagePool() {
         this.dimIndexedMultimap = new HashMap<Dimension,List<BufferedImage>>();
     }
     
-    public ImageBin(Collection<BufferedImage> imageColl) {
+    public ImagePool(Collection<BufferedImage> imageColl) {
        this();
        
        for (BufferedImage image: imageColl) {

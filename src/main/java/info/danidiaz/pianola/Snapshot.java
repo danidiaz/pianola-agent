@@ -53,7 +53,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public final class Snapshot {
 
-    private ImageBin imageBin;
+    private ImagePool imageBin;
     
     private List<WindowWrapper> windowArray = new ArrayList<WindowWrapper>();
     //private Map<Window,BufferedImage> windowImageMap = new HashMap<Window,BufferedImage>();
@@ -63,14 +63,14 @@ public final class Snapshot {
     
     private JsonNode json;
     
-	public static Snapshot build(ImageBin imageBin, boolean releaseIsPopupTrigger) throws Exception {
+	public static Snapshot build(ImagePool imageBin, boolean releaseIsPopupTrigger) throws Exception {
     	Snapshot snapshot = new Snapshot(imageBin, releaseIsPopupTrigger);
     	JsonNode json = snapshot.buildAndWrite();
     	snapshot.setJson(json);
     	return snapshot;
     }
 
-    private Snapshot(ImageBin imageBin, boolean releaseIsPopupTrigger) {
+    private Snapshot(ImagePool imageBin, boolean releaseIsPopupTrigger) {
         this.imageBin = imageBin;
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
     }
