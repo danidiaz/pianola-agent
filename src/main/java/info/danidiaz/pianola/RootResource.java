@@ -3,6 +3,7 @@ package info.danidiaz.pianola;
 import info.danidiaz.pianola.Snapshot.WindowWrapper;
 
 import java.awt.Image;
+import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.net.URI;
 import java.util.ArrayList;
@@ -18,9 +19,13 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.ServerErrorException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Variant;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -112,34 +117,29 @@ public class RootResource {
 
 	@GET
     @Path("snapshots/{snapshotId}/windows/{windowId}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public JsonNode getWindow( @PathParam("snapshotId") Integer snapshotId,
-                                    @PathParam("windowId") int windowId
+    @Produces({ MediaType.APPLICATION_JSON, "image/png" })
+    public Response getWindow( @Context Request r, 
+    		@PathParam("snapshotId") Integer snapshotId,
+                                    @PathParam("windowId") int windowId,
+                                    @QueryParam("$format") String format
     							  ) {
 		if (snapsotMap.containsKey(snapshotId)) {
 			List<WindowWrapper> windows = 
 					this.snapsotMap.get(snapshotId).getWindowArray();
 			if (windowId < windows.size()) {
-				return windows.get(windowId).getJson();
-			} else {
-                throw new ClientErrorException(404);
-			}
-		} else {
-			throw new ClientErrorException(404);
-		}
-    }
-
-	@GET
-    @Path("snapshots/{snapshotId}/windows/{windowId}/image")
-	@Produces("image/png")
-    public BufferedImage getWindowImage( @PathParam("snapshotId") Integer snapshotId,
-                                    @PathParam("windowId") int windowId
-    							  ) {
-		if (snapsotMap.containsKey(snapshotId)) {
-			List<WindowWrapper> windows = 
-					this.snapsotMap.get(snapshotId).getWindowArray();
-			if (windowId < windows.size()) {
-				return windows.get(windowId).getImage();
+				WindowWrapper window = windows.get(windowId); 
+				// https://docs.oracle.com/javaee/6/tutorial/doc/gkqbq.html
+				MediaType image_png = new MediaType("image","png");
+				List<Variant> vs = Variant.mediaTypes(MediaType.APPLICATION_JSON_TYPE, 
+						image_png).build();
+				Variant v = r.selectVariant(vs);
+				if (v.getMediaType().equals(image_png) || 
+						(format != null && format.equals("png"))) {
+				    return Response.ok(window.getImage(),image_png).build();  	
+				} else {
+				    return Response.ok(window.getJson(),
+				    					MediaType.APPLICATION_JSON_TYPE).build();  	
+				}
 			} else {
                 throw new ClientErrorException(404);
 			}
