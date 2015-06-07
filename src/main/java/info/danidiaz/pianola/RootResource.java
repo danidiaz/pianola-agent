@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import javax.ws.rs.ClientErrorException;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -96,6 +97,18 @@ public class RootResource {
 		}
     }
 
+	@DELETE
+    @Path("snapshots/{snapshotId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteSnapshot(@PathParam("snapshotId") Integer snapshotId) {
+		if (snapsotMap.containsKey(snapshotId)) {
+			Snapshot snapshot = this.snapsotMap.get(snapshotId);
+			this.snapsotMap = Collections.<Integer,Snapshot>emptyMap();
+			return Response.ok().build();
+		} else {
+			throw new ClientErrorException(404);
+		}
+    }
 
 	@GET
     @Path("snapshots/{snapshotId}/windows")
