@@ -2,7 +2,9 @@ package info.danidiaz.pianola;
 
 import java.awt.Dimension;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,13 +19,13 @@ public class ImagePool {
 
     /*Some multimap class from Guava or Apache Commons would be better here,
     but I want to avoid dependencies.*/
-    private Map<Dimension,List<BufferedImage>> dimIndexedMultimap;
+    private Map<Dimension,ArrayList<BufferedImage>> dimIndexedMultimap;
     
     public ImagePool() {
-        this.dimIndexedMultimap = new HashMap<Dimension,List<BufferedImage>>();
+        this.dimIndexedMultimap = new HashMap<Dimension, ArrayList<BufferedImage>>();
     }
     
-    public ImagePool(Collection<BufferedImage> imageColl) {
+/*    public ImagePool(Collection<BufferedImage> imageColl) {
        this();
        
        for (BufferedImage image: imageColl) {
@@ -33,20 +35,20 @@ public class ImagePool {
            } 
            dimIndexedMultimap.get(d).add(image);
        }
-    }
+    }*/
     
     private static Dimension getDimension(BufferedImage image) {
         return new Dimension(image.getWidth(), image.getHeight());
     }
     
-    public void flush() {
+/*    public void flush() {
         for (List<BufferedImage> imageList: this.dimIndexedMultimap.values()) {
             for (BufferedImage image: imageList) {
                 image.flush();
             }
         }
         this.dimIndexedMultimap.clear();
-    }
+    }*/
     
     public BufferedImage obtainImage(Dimension d) {
         if (this.dimIndexedMultimap.containsKey(d)) {
@@ -59,9 +61,20 @@ public class ImagePool {
         return new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_RGB);
     }
     
+    public void releaseImage(BufferedImage image) {
+    	Dimension d = getDimension(image);
+    	if (this.dimIndexedMultimap.containsKey(d)) {
+            List<BufferedImage> imageList = this.dimIndexedMultimap.get(d);
+            imageList.add(image);
+    	} else {
+    		this.dimIndexedMultimap.put(d, 
+    				new ArrayList<BufferedImage>(Collections.singletonList(image)));
+    	}
+    }
+
     public JsonNode asJson() {
       	ArrayNode array = JsonNodeFactory.instance.arrayNode();
-      	for (Map.Entry<Dimension, List<BufferedImage>> entry : 
+      	for (Map.Entry<Dimension, ArrayList<BufferedImage>> entry : 
       			this.dimIndexedMultimap.entrySet())
       	{
       		ObjectNode node = JsonNodeFactory.instance.objectNode();

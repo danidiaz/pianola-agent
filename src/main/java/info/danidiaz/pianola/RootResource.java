@@ -103,6 +103,7 @@ public class RootResource {
     public Response deleteSnapshot(@PathParam("snapshotId") Integer snapshotId) {
 		if (snapsotMap.containsKey(snapshotId)) {
 			Snapshot snapshot = this.snapsotMap.get(snapshotId);
+			snapshot.releaseImages();
 			this.snapsotMap = Collections.<Integer,Snapshot>emptyMap();
 			return Response.ok().build();
 		} else {

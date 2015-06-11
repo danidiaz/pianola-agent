@@ -53,7 +53,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public final class Snapshot {
 
-    private ImagePool imageBin;
+    private ImagePool imagePool;
     
     private List<WindowWrapper> windowArray = new ArrayList<WindowWrapper>();
     //private Map<Window,BufferedImage> windowImageMap = new HashMap<Window,BufferedImage>();
@@ -70,9 +70,15 @@ public final class Snapshot {
     	return snapshot;
     }
 
-    private Snapshot(ImagePool imageBin, boolean releaseIsPopupTrigger) {
-        this.imageBin = imageBin;
+    private Snapshot(ImagePool imagePool, boolean releaseIsPopupTrigger) {
+        this.imagePool = imagePool;
         this.releaseIsPopupTrigger = releaseIsPopupTrigger;
+    }
+
+    void releaseImages() {
+    	for (WindowWrapper wrapper : this.windowArray) {
+    		imagePool.releaseImage(wrapper.getImage());
+    	}
     }
 
     private final JsonNode buildAndWrite() throws Exception {
@@ -86,12 +92,8 @@ public final class Snapshot {
     			}    			
             );
 
-    	try {
-            SwingUtilities.invokeAndWait(futureTask);
-            return futureTask.get();
-    	} finally {
-            this.imageBin.flush();
-    	}
+    	SwingUtilities.invokeAndWait(futureTask);
+    	return futureTask.get();
     }
     
  /*   private static int countShowing(Component[] warray) {
@@ -126,7 +128,7 @@ public final class Snapshot {
     	ObjectNode windowNode = JsonNodeFactory.instance.objectNode();
 
         int windowId = windowArray.size();
-        BufferedImage image = imageBin.obtainImage(w.getSize());
+        BufferedImage image = imagePool.obtainImage(w.getSize());
         w.paint(image.getGraphics());
         
         windowNode.put("windowId",(int)windowId);
