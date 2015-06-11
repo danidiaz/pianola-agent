@@ -53,11 +53,12 @@ public class ImagePool {
     public BufferedImage obtainImage(Dimension d) {
         if (this.dimIndexedMultimap.containsKey(d)) {
             List<BufferedImage> imageList = this.dimIndexedMultimap.get(d);
-            if (!imageList.isEmpty()) {
-               return imageList.remove(0);
+            BufferedImage image = imageList.remove(0);
+            if (imageList.isEmpty()) {
+            	this.dimIndexedMultimap.remove(d);
             }
+            return image;
         } 
-        
         return new BufferedImage(d.width, d.height, BufferedImage.TYPE_INT_RGB);
     }
     
